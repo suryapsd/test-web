@@ -54,6 +54,7 @@
       </div>
     </div>
   </div>
+
   <!-- Modal Layout -->
   <x-modal.modal-form id="{{ $table_id }}" title="{{ $title }}" size="modal-lg" form-action="javascript:void(0)">
     <input type="hidden" name="data_id" id="data_id">
@@ -104,9 +105,9 @@
             });
 
             dropdown.prop('disabled', false);
-            if (selectedValue) {
-              dropdown.trigger('change');
-            }
+            // if (selectedValue) {
+            //   dropdown.trigger('change');
+            // }
           },
           error: function(xhr, status, error) {
             console.error('Error fetching data:', error);
@@ -122,67 +123,89 @@
       getDokumenWajib('#dokumen_wajib', layanan_jenis_id)
     });
 
-    function getDokumenWajib(tagId, layanan_jenis_id) {
+    function getDokumenWajib(tagId, layanan_jenis_id, existingFiles = []) {
       const container = $(tagId);
 
-      if (layanan_jenis_id) {
-        container.html('<p>Loading...</p>');
-        $.ajax({
-          url: '/jenis-layanan/' + layanan_jenis_id,
-          type: "GET",
-          success: function(response) {
-            const dokumens = response.data.dokumen_wajibs || [];
-            container.empty();
+      if (!layanan_jenis_id) return;
 
-            dokumens.forEach(item => {
-              const name = `file[${item.id}]`;
-              const id = `file_${item.id}`;
-              const label = item.name;
-              const allowedMimes = item.type !== 'all' ? item.type : 'jpg,jpeg,png,pdf';
+      container.html('<p>Loading...</p>');
 
-              const html = `
-            <div class="col-md-12 mb-3">
-              <label class="form-label" for="${id}">${label} <span style="color:red">*</span></label>
-              <input type="file"
-                     class="pond"
-                     name="${name}"
-                     id="${id}"
-                     required
-                     data-allowed-mimes="${allowedMimes}"
-                     label-idle='Drag and drop or <span class="filepond--label-action">Upload</span>'>
-            </div>
-          `;
-              container.append(html);
+      $.ajax({
+        url: '/jenis-layanan/' + layanan_jenis_id,
+        type: "GET",
+        success: function(response) {
+          const dokumens = response.data.dokumen_wajibs || [];
+          container.empty();
+
+          dokumens.forEach(item => {
+            const name = `file[${item.id}]`;
+            const id = `file_${item.id}`;
+            const label = item.name;
+            const allowedMimes = item.type !== 'all' ? item.type : 'jpg,jpeg,png,pdf';
+
+            // Cek apakah dokumen sudah pernah diupload
+            const matchedFile = existingFiles.find(f => f.dokumen_wajib_id == item.id);
+            const fileUrl = matchedFile ? `/${matchedFile.path}` : null;
+
+            const html = `
+                  <div class="col-md-12 mb-3">
+                    <label class="form-label" for="${id}">${label} <span style="color:red">*</span> <small id="download_${id}"></small></label>
+                    <input type="file"
+                          class="pond"
+                          name="${name}"
+                          id="${id}"
+                          required
+                          data-allowed-mimes="${allowedMimes}"
+                          data-existing-file="${fileUrl || ''}"
+                          label-idle='Drag and drop or <span class="filepond--label-action">Upload</span>'>
+                  </div>
+                `;
+
+            container.append(html);
+          });
+
+          // Aktifkan FilePond untuk setiap input
+          setTimeout(() => {
+            document.querySelectorAll('.pond').forEach((pondInput) => {
+              const mimeAttr = pondInput.getAttribute('data-allowed-mimes');
+              const mimeList = mimeAttr ? mimeAttr.split(',').map(m => `image/${m.trim()}`) : [];
+
+              const acceptedTypes = mimeList.map(mime => {
+                if (mime.includes('pdf')) return 'application/pdf';
+                return mime;
+              });
+
+              const pond = FilePond.create(pondInput, {
+                acceptedFileTypes: acceptedTypes,
+                storeAsFile: true,
+                labelFileTypeNotAllowed: 'Tipe file tidak diperbolehkan.',
+                fileValidateTypeLabelExpectedTypes: 'Tipe file harus: {allTypes}',
+              });
             });
 
-            // Aktifkan FilePond untuk setiap input
-            setTimeout(() => {
-              document.querySelectorAll('.pond').forEach((pondInput) => {
-                const mimeAttr = pondInput.getAttribute('data-allowed-mimes');
-                const mimeList = mimeAttr ? mimeAttr.split(',').map(m => `image/${m.trim()}`) : [];
+            existingFiles.forEach(item => {
+              if (item.path) {
+                const fileName = '#file_' + item.dokumen_wajib_id;
+                const filePondInstance = FilePond.find(document.querySelector(fileName));
+                filePondInstance.removeFiles();
+                filePondInstance.addFile(item.path);
 
-                // Khusus untuk PDF, ubah dari image/pdf ke application/pdf
-                const acceptedTypes = mimeList.map(mime => {
-                  if (mime.includes('pdf')) return 'application/pdf';
-                  if (mime.includes('jpg') || mime.includes('jpeg') || mime.includes('png') || mime.includes('webp'))
-                    return mime.replace('image/', 'image/');
-                  return mime;
-                });
+                const download_btn = `
+                  <a href="${item.path}" target="_blank" rel="noopener noreferrer">download file</a>
+                `;
+                const download_container = $('#download_file_' + item.dokumen_wajib_id);
+                download_container.empty();
+                download_container.append(download_btn);
+              }
+            })
+          }, 100);
 
-                FilePond.create(pondInput, {
-                  acceptedFileTypes: acceptedTypes,
-                  storeAsFile: true,
-                  labelFileTypeNotAllowed: 'Tipe file tidak diperbolehkan.',
-                  fileValidateTypeLabelExpectedTypes: 'Tipe file harus: {allTypes}',
-                });
-              });
-            }, 100);
-          },
-          error: function() {
-            // container.html('<div class="text-danger">Gagal memuat dokumen wajib.</div>');
-          }
-        });
-      }
+
+        },
+        error: function() {
+          container.html('<div class="text-danger">Gagal memuat dokumen wajib.</div>');
+        }
+      });
     }
   </script>
   <script>
@@ -315,6 +338,7 @@
       var data = $(this).data('json');
       modal.find('#layanan_kategori_id').val(data.layanan_jenis.layanan_kategori.id).trigger('change');
       getDropdwnSelect('#layanan_jenis_id', data.layanan_jenis.layanan_kategori.id, data.layanan_jenis.id)
+      getDokumenWajib('#dokumen_wajib', data.layanan_jenis.id, data.pengajuan_details)
       modal.find('#data_id').val(data.id);
       modal.find('#description').val(data.description);
       modal.find('#name').val(data.user.name);

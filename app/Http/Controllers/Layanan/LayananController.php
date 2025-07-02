@@ -6,6 +6,7 @@ use App\Models\Pengajuan;
 use App\Models\DokumenWajib;
 use App\Models\LayananJenis;
 use Illuminate\Http\Request;
+use App\Helpers\UploadHelper;
 use App\Helpers\ResponseHelper;
 use App\Models\LayananKategori;
 use App\Models\PengajuanDetail;
@@ -98,7 +99,7 @@ class LayananController extends Controller
             );
 
             foreach ($request->file('file') as $dokumen_id => $file) {
-                $path = $file->store('dokumen_pengajuan', 'public');
+                $path = UploadHelper::update($file, uniqid(), 'uploads/pengajuan_details/', null);
 
                 PengajuanDetail::updateOrCreate(
                     [
