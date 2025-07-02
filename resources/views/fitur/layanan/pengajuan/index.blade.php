@@ -2,7 +2,20 @@
 @push('script-head')
   <link rel="stylesheet" href="{{ asset('assets/vendor/libs/select2/select2.css') }}" />
   <link rel="stylesheet" href="{{ asset('assets/vendor/libs/datatables-bs5/datatables.bootstrap5.css') }}" />
-  <link rel="stylesheet" href="{{ asset('assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.css') }}" />
+  <link rel="stylesheet" href="{{ asset('assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.css') }}" />\
+  <link href="https://unpkg.com/filepond@^4/dist/filepond.css" rel="stylesheet" />
+  <link href="https://unpkg.com/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css" rel="stylesheet" />
+  <script src="https://unpkg.com/filepond-plugin-file-validate-size/dist/filepond-plugin-file-validate-size.js"></script>
+  <script src="https://unpkg.com/filepond-plugin-file-validate-type/dist/filepond-plugin-file-validate-type.js"></script>
+  <script src="https://unpkg.com/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.js"></script>
+  <script src="https://unpkg.com/filepond@^4/dist/filepond.js"></script>
+  <script>
+    FilePond.registerPlugin(
+      FilePondPluginImagePreview,
+      FilePondPluginFileValidateType,
+      FilePondPluginFileValidateSize,
+    );
+  </script>
 @endpush
 @section('content')
   <div class="container-xxl flex-grow-1 container-p-y">
@@ -25,8 +38,10 @@
               <thead>
                 <tr>
                   <th>No</th>
-                  <th>Layanan</th>
+                  <th>Nama</th>
                   <th>Kategori Layanan</th>
+                  <th>Jenis Layanan</th>
+                  <th>Status</th>
                   <th>Description</th>
                   <th>Actions</th>
                 </tr>
@@ -40,11 +55,13 @@
     </div>
   </div>
   <!-- Modal Layout -->
-  <x-modal.modal-form id="{{ $table_id }}" title="{{ $title }}" form-action="javascript:void(0)">
+  <x-modal.modal-form id="{{ $table_id }}" title="{{ $title }}" size="modal-lg" form-action="javascript:void(0)">
     <input type="hidden" name="data_id" id="data_id">
-    <x-forms.input-field label="Jenis Layanan" name="name" />
+    <x-forms.input-field label="Nama" name="name" value="{{ Auth::user()->name }}" columnSpan="col-md-6" required="false" readonly />
+    <x-forms.input-field label="NIK" name="nik" value="{{ Auth::user()->nik }}" columnSpan="col-md-6" required="false" readonly />
     <x-forms.select2-default name="layanan_kategori_id" label="Kategori Layanan" :datas="$kategoris" required="true" class="" columnSpan="col-12" />
-    <x-forms.select2-multiple-basic name="dokumen_wajib_id" label="Dokumen Wajib" :datas="$dokumenWajibs" required="true" class="" columnSpan="col-12" />
+    <x-forms.select2-default name="layanan_jenis_id" label="Jenis Layanan" :datas="$jenis" required="true" class="" columnSpan="col-12" disabled />
+    <div id="dokumen_wajib"></div>
     <x-forms.text-area-field name="description" required="false" />
   </x-modal.modal-form>
   <!-- Modal -->
@@ -54,6 +71,120 @@
   <script src="{{ asset('assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js') }}"></script>
 @endpush
 @push('script')
+  <script>
+    $('#layanan_kategori_id').change(function() {
+      const layanan_kategori_id = $('#layanan_kategori_id').find(':selected').val();
+      getDropdwnSelect('#layanan_jenis_id', layanan_kategori_id)
+    });
+
+    function getDropdwnSelect(selectId, layanan_kategori_id, selectedValue = null) {
+      const dropdown = $(selectId);
+
+      if (layanan_kategori_id) {
+        // Reset dropdown & show loading
+        dropdown
+          .empty()
+          .append(`<option disabled selected>Loading...</option>`)
+        // .prop('disabled', true);
+
+        $.ajax({
+          url: '{{ url('jenis-layanan/data') }}',
+          type: "GET",
+          data: {
+            layanan_kategori_id: layanan_kategori_id
+          },
+          success: function(response) {
+            const data = response.data || [];
+
+            dropdown.empty().append(`<option value="">Select value</option>`);
+
+            data.forEach(item => {
+              const selected = item.id === selectedValue ? 'selected' : '';
+              dropdown.append(`<option value="${item.id}" ${selected}>${item.name}</option>`);
+            });
+
+            dropdown.prop('disabled', false);
+            if (selectedValue) {
+              dropdown.trigger('change');
+            }
+          },
+          error: function(xhr, status, error) {
+            console.error('Error fetching data:', error);
+            dropdown.empty().append(`<option disabled selected>Failed to load data</option>`);
+            dropdown.prop('disabled', false);
+          }
+        });
+      }
+    }
+
+    $('#layanan_jenis_id').change(function() {
+      const layanan_jenis_id = $('#layanan_jenis_id').find(':selected').val();
+      getDokumenWajib('#dokumen_wajib', layanan_jenis_id)
+    });
+
+    function getDokumenWajib(tagId, layanan_jenis_id) {
+      const container = $(tagId);
+
+      if (layanan_jenis_id) {
+        container.html('<p>Loading...</p>');
+        $.ajax({
+          url: '/jenis-layanan/' + layanan_jenis_id,
+          type: "GET",
+          success: function(response) {
+            const dokumens = response.data.dokumen_wajibs || [];
+            container.empty();
+
+            dokumens.forEach(item => {
+              const name = `file[${item.id}]`;
+              const id = `file_${item.id}`;
+              const label = item.name;
+              const allowedMimes = item.type !== 'all' ? item.type : 'jpg,jpeg,png,pdf';
+
+              const html = `
+            <div class="col-md-12 mb-3">
+              <label class="form-label" for="${id}">${label} <span style="color:red">*</span></label>
+              <input type="file"
+                     class="pond"
+                     name="${name}"
+                     id="${id}"
+                     required
+                     data-allowed-mimes="${allowedMimes}"
+                     label-idle='Drag and drop or <span class="filepond--label-action">Upload</span>'>
+            </div>
+          `;
+              container.append(html);
+            });
+
+            // Aktifkan FilePond untuk setiap input
+            setTimeout(() => {
+              document.querySelectorAll('.pond').forEach((pondInput) => {
+                const mimeAttr = pondInput.getAttribute('data-allowed-mimes');
+                const mimeList = mimeAttr ? mimeAttr.split(',').map(m => `image/${m.trim()}`) : [];
+
+                // Khusus untuk PDF, ubah dari image/pdf ke application/pdf
+                const acceptedTypes = mimeList.map(mime => {
+                  if (mime.includes('pdf')) return 'application/pdf';
+                  if (mime.includes('jpg') || mime.includes('jpeg') || mime.includes('png') || mime.includes('webp'))
+                    return mime.replace('image/', 'image/');
+                  return mime;
+                });
+
+                FilePond.create(pondInput, {
+                  acceptedFileTypes: acceptedTypes,
+                  storeAsFile: true,
+                  labelFileTypeNotAllowed: 'Tipe file tidak diperbolehkan.',
+                  fileValidateTypeLabelExpectedTypes: 'Tipe file harus: {allTypes}',
+                });
+              });
+            }, 100);
+          },
+          error: function() {
+            // container.html('<div class="text-danger">Gagal memuat dokumen wajib.</div>');
+          }
+        });
+      }
+    }
+  </script>
   <script>
     'use strict';
 
@@ -68,7 +199,7 @@
       if (dt_view.length) {
         table_{{ $table_id }} = dt_view.DataTable({
           ajax: {
-            url: '{{ url('jenis-layanan/data') }}',
+            url: '{{ url('layanan/data') }}',
             type: "GET",
             dataSrc: 'data'
           }, // JSON file to add data
@@ -101,10 +232,16 @@
               data: 'id'
             },
             {
-              data: 'name'
+              data: 'user.name'
             },
             {
-              data: 'layanan_kategori.name'
+              data: 'layanan_jenis.layanan_kategori.name'
+            },
+            {
+              data: 'layanan_jenis.name'
+            },
+            {
+              data: 'status'
             },
             {
               data: 'description'
@@ -176,19 +313,20 @@
       modal.find('#titleType').text("Update");
 
       var data = $(this).data('json');
+      modal.find('#layanan_kategori_id').val(data.layanan_jenis.layanan_kategori.id).trigger('change');
+      getDropdwnSelect('#layanan_jenis_id', data.layanan_jenis.layanan_kategori.id, data.layanan_jenis.id)
       modal.find('#data_id').val(data.id);
       modal.find('#description').val(data.description);
-      modal.find('#layanan_kategori_id').val(data.layanan_kategori_id).trigger('change');
-      modal.find('#name').val(data.name);
-      let selectedDokumen = data.dokumen_wajibs.map(item => item.id);
-      modal.find('#dokumen_wajib_id').val(selectedDokumen).trigger('change');
+      modal.find('#name').val(data.user.name);
+      modal.find('#nik').val(data.user.nik);
+      modal.find('#user_id').val(data.user.id);
 
       // Menampilkan modal
       modal.modal('show');
     });
   </script>
   @include('layout-admin.components.script-crud-simple', [
-      'urlPost' => url('jenis-layanan'),
+      'urlPost' => url('layanan'),
       'tableId' => $table_id,
   ])
 @endpush

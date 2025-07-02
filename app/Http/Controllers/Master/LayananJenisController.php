@@ -43,7 +43,11 @@ class LayananJenisController extends Controller
 
     public function data(Request $request)
     {
-        $data = LayananJenis::with('layanan_kategori', 'dokumen_wajibs')->orderBy('name', 'ASC')->get();
+        $data = LayananJenis::with('layanan_kategori', 'dokumen_wajibs')
+            ->when($request->layanan_kategori_id, function($query) use($request){
+                $query->where('layanan_kategori_id', $request->layanan_kategori_id);
+            })
+            ->orderBy('name', 'ASC')->get();
         return ResponseHelper::success($data, $this->title . ' retrieved successfully');
     }
 
@@ -68,8 +72,7 @@ class LayananJenisController extends Controller
             ]
         );
 
-        $dokumenIds = collect($request->dokumen_wajib_id)->pluck(0)->all();
-        $data->dokumen_wajibs()->sync($dokumenIds);
+        $data->dokumen_wajibs()->sync($request->dokumen_wajib_id);
 
         return ResponseHelper::success($data, $this->title . ' saved successfully');
     }
@@ -79,7 +82,7 @@ class LayananJenisController extends Controller
      */
     public function show($id)
     {
-        $data = LayananJenis::findOrFail($id);
+        $data = LayananJenis::with('layanan_kategori', 'dokumen_wajibs')->findOrFail($id);
         return ResponseHelper::success($data, $this->title . ' showing successfully');
     }
 

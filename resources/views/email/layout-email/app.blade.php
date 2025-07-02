@@ -60,17 +60,6 @@
                       <td style="font-family: 'Montserrat', sans-serif; mso-line-height-rule: exactly; height: 20px;"></td>
                     </tr>
                     <tr>
-                      <td style="mso-line-height-rule: exactly; padding-left: 48px; padding-right: 48px; font-family: Montserrat, -apple-system, 'Segoe UI', sans-serif; font-size: 14px; color: #eceff1;">
-                        <p align="center" style="font-family: 'Montserrat', sans-serif; mso-line-height-rule: exactly; margin-bottom: 16px; cursor: default;">
-                          <a href="https://www.instagram.com/balilyfeventures" style="font-family: 'Montserrat', sans-serif; mso-line-height-rule: exactly; color: #263238; text-decoration: none;"><img src="https://adm.balilyfeventures.com/assets/img/brand/instagram.png" width="17" alt="instagram" style="max-width: 100%; vertical-align: middle; line-height: 100%; border: 0; margin-right: 12px;"></a>
-                          &bull;
-                          <a href="https://www.airbnb.com/users/show/49228610" style="font-family: 'Montserrat', sans-serif; mso-line-height-rule: exactly; color: #263238; text-decoration: none;"><img src="https://adm.balilyfeventures.com/assets/img/brand/airbnb.png" width="17" alt="airbnb" style="max-width: 100%; vertical-align: middle; line-height: 100%; border: 0; margin-right: 12px;"></a>
-                          &bull;
-                          <a href="https://www.tiktok.com/@_balilyfeventures" style="font-family: 'Montserrat', sans-serif; mso-line-height-rule: exactly; color: #263238; text-decoration: none;"><img src="https://adm.balilyfeventures.com/assets/img/brand/tik-tok.png" width="17" alt="tik-tok" style="max-width: 100%; vertical-align: middle; line-height: 100%; border: 0; margin-right: 12px;"></a>
-                        </p>
-                      </td>
-                    </tr>
-                    <tr>
                       <td style="font-family: 'Montserrat', sans-serif; mso-line-height-rule: exactly; height: 16px;"></td>
                     </tr>
                   </table>

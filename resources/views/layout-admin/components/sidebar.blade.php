@@ -136,6 +136,12 @@
         <div data-i18n="Villas">Layanan</div>
       </a>
     </li>
+    <li class="menu-item {{ request()->is('arsip*') ? 'active' : '' }}">
+      <a href="/arsip" class="menu-link">
+        <i class="menu-icon tf-icons ti ti-clipboard"></i>
+        <div data-i18n="Villas">Arsip</div>
+      </a>
+    </li>
 
     <div class="py-3"></div>
   </ul>

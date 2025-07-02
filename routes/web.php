@@ -5,6 +5,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\User\RoleController;
 use App\Http\Controllers\User\UserController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\Layanan\LayananController;
 use App\Http\Controllers\User\PermissionController;
 use App\Http\Controllers\Master\DokumenWajibController;
 use App\Http\Controllers\Master\LayananJenisController;
@@ -48,5 +49,8 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('dokumen-wajib/data', [DokumenWajibController::class, 'data']);
     Route::resource('dokumen-wajib', DokumenWajibController::class);
+
+    Route::get('layanan/data', [LayananController::class, 'data']);
+    Route::resource('layanan', LayananController::class);
     
 });
